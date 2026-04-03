@@ -1,0 +1,114 @@
+# ~/airflow/docker-compose.yml
+version: '3.8'
+
+x-airflow-common: &airflow-common
+# image: apache/airflow:2.8.1
+  build: .
+  env_file: 
+    - ./.env
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD}@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_CORE_FERNET_KEY} 
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    AIRFLOW__WEBSERVER__WORKERS: '2'
+    TNS_ADMIN: ${DB_WALLET_LOCATION}
+    WALLET_LOCATION: ${DB_WALLET_LOCATION}
+    WALLET_PASSWORD: ${DB_WALLET_PASSWORD}
+    SSL_SERVER_DN_MATCH: "False"
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./dbt:/opt/airflow/dbt
+    - ./wallet:/opt/airflow/wallet
+    - ./plugins:/opt/airflow/plugins
+    - ./google_credentials:/opt/airflow/google_credentials
+  depends_on:
+    postgres:
+     condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+    restart: always
+
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command: -c "airflow db init && airflow users create --username ${AIRFLOW_ADMIN_USER} --password ${AIRFLOW_ADMIN_PASSWORD} --firstname Admin --lastname User --role Admin --email ${MY_EMAIL}"
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 800m
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile.superset
+    container_name: superset
+    restart: always
+    ports:
+      - "8088:8088"
+    environment:
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
+      - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
+      - TNS_ADMIN=${DB_WALLET_LOCATION}
+      - WALLET_LOCATION=${DB_WALLET_LOCATION}
+      - WALLET_PASSWORD=${DB_WALLET_PASSWORD}
+    depends_on:
+      - superset_db
+      - superset_redis
+    volumes:
+      - superset_home:/app/superset_home
+      - ./wallet:/opt/airflow/wallet
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+
+  superset_db:
+    image: postgres:14
+    container_name: superset_db
+    restart: always
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: ${SUPERSET_DB_POSTGRES_PASSWORD} 
+    volumes:
+      - superset_db_data:/var/lib/postgresql/data
+
+  superset_redis:
+    image: redis:7
+    container_name: superset_redis
+    restart: always
+
+
+volumes:
+  postgres_db:
+  superset_home:
+  superset_db_data:

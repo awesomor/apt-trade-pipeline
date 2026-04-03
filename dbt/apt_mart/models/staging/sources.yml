@@ -1,0 +1,6 @@
+version: 2
+sources:
+  - name: apt_trade_raw
+    schema: ADMIN
+    tables:
+      - name: APT_TRADE_RAW

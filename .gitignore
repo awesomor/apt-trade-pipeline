@@ -1,0 +1,23 @@
+# 환경변수
+.env
+dags/apt-trade/.env
+
+# Oracle Wallet
+wallet/
+!wallet/README.md
+
+# dbt 생성 파일
+dbt/apt_mart/target/
+dbt/apt_mart/logs/
+dbt/apt_mart/dbt_packages/
+dbt/apt_mart/.user.yml
+
+# Python
+__pycache__/
+*.pyc
+
+# 로그
+logs/
+
+# google credentials
+google_credentials/

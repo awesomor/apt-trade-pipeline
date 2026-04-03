@@ -1,0 +1,13 @@
+WITH base as (
+    SELECT * FROM {{ ref('stg_apt_trades') }}
+)
+
+SELECT 
+    LAWD_CD, 
+    DEAL_YMD,
+    COUNT(DEAL_AMOUNT) as DEAL_COUNT,
+    SUM(DEAL_AMOUNT) as TOTAL_DEAL_AMOUNT
+FROM base
+GROUP BY LAWD_CD, DEAL_YMD
+ORDER BY LAWD_CD, DEAL_YMD
+

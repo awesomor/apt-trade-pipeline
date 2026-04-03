@@ -1,0 +1,15 @@
+apt_mart:
+  target: prod
+  outputs:
+    prod:
+      type: oracle
+      user: "{{ env_var('DB_USER') }}"
+      password: "{{ env_var('DB_PASSWORD') }}"
+      schema: "ADMIN"
+      protocol: tcps
+      host: "{{ env_var('DB_HOST') }}"
+      port: 1522
+      service: "{{ env_var('DB_SERVICE') }}"
+      ssl_server_dn_match: false
+      threads: 1
+      python_driver_type: thin
