@@ -8,23 +8,36 @@
 
 ## 아키텍처
 
-```mermaid
-flowchart LR
-    A[공공데이터포털\n아파트 실거래가 API] -->|HTTP 수집| B[Airflow\napt_trade_initial_collect DAG]
-    B -->|Raw 적재| C[(Oracle Cloud\nAutonomous DB)]
-    B -->|DAG Trigger| D[Airflow\napt_trade_dbt DAG]
-    D -->|dbt run| C
-    C -->|조회| E[Apache Superset\n대시보드]
+## 아키텍처
 
-    subgraph Ubuntu 22.04 VM @ UTM
-        subgraph Docker Compose
-            B
-            D
-            E
-            F[(PostgreSQL\nAirflow 메타 DB)]
-        end
-    end
-```
+- **공공데이터포털 아파트 실거래가 API**
+  - HTTP로 데이터 수집 → Airflow DAG 실행
+
+- **Airflow: apt_trade_initial_collect DAG**
+  - 수집 데이터 Raw 형태로 저장 → Oracle Cloud Autonomous DB
+  - 이후 DAG 트리거 → apt_trade_dbt DAG 실행
+
+- **Airflow: apt_trade_dbt DAG**
+  - dbt run 수행 → Oracle Cloud Autonomous DB에 모델 반영
+
+- **Oracle Cloud Autonomous DB**
+  - 데이터 저장 및 조회
+
+- **Apache Superset**
+  - DB 조회 → 대시보드 시각화
+
+---
+
+### 실행 환경
+
+- **Ubuntu 22.04 VM (UTM)**
+  - Docker Compose로 구성
+    - Airflow (apt_trade_initial_collect DAG)
+    - Airflow (apt_trade_dbt DAG)
+    - Apache Superset
+    - PostgreSQL (Airflow 메타 DB)
+   
+
 
 ### 데이터 흐름
 
