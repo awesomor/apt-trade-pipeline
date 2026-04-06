@@ -1,9 +1,13 @@
 WITH source as (
-    SELECT * FROM {{ source('apt_trade_raw', 'APT_TRADE_RAW') }}
+    SELECT * FROM {{ source('apt_trade_raw', 'APT_TRADE_RAW') }} ATR
+    JOIN {{ source('sgg_codes', 'SGG_CODES_260406') }} SCS
+        ON ATR.LAWD_CD = SCS.시군구코드
 ),
+
 cleaned as (
     SELECT 
         TRIM(LAWD_CD) as LAWD_CD,
+        TRIM(법정동명) as LAWD_NM,
         TRIM(DEAL_YMD) as DEAL_YMD,
         TRIM(APT_NM) as APT_NM,
         10000 * CAST(REPLACE(DEAL_AMOUNT, ',', '') as INT) as DEAL_AMOUNT,

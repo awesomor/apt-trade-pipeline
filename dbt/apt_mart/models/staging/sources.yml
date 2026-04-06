@@ -4,3 +4,8 @@ sources:
     schema: ADMIN
     tables:
       - name: APT_TRADE_RAW
+
+  - name: sgg_codes
+    schema: ADMIN
+    tables:
+      - name: SGG_CODES_260406

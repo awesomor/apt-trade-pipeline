@@ -32,10 +32,12 @@ class ExtraFormatter(logging.Formatter):
 
 
 logger = logging.getLogger(__name__)
+logger.propagate = False
+
 handler = logging.StreamHandler()
 handler.setFormatter(ExtraFormatter('%(asctime)s [%(levelname)s] %(message)s'))
+
 logger.addHandler(handler)
-logger.setLevel(logging.INFO)
  
 # 시군구 코드 파일로부터 조회, 파일 없으면 빈 리스트 반환
 def get_sgg_codes(file_name=os.path.join(DATA_DIR, SGG_FILENAME)):
@@ -191,7 +193,7 @@ def collect_one(conn, lawd_cd, deal_ymd, daily_limit):
     Raise:
         RateLimitExceeded - 일일 한도 초과 시 (호출자가 수집 중단해야 함)
     """
-    logger.info("[START] collect_one 실행", extra={"lawd_cd": lawd_cd, "deal_ymd": deal_ymd})
+    # logger.info("[START] collect_one 실행", extra={"lawd_cd": lawd_cd, "deal_ymd": deal_ymd})
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -223,7 +225,7 @@ def collect_one(conn, lawd_cd, deal_ymd, daily_limit):
 
         if total_count <= row_count:
             logger.info("변동없는 데이터로 업데이트 하지 않음", extra={"lawd_cd": lawd_cd, "deal_ymd": deal_ymd, "total_count": total_count, "row_count": row_count})
-            upsert_log(cursor, lawd_cd, deal_ymd, "same", 0)
+            upsert_log(cursor, lawd_cd, deal_ymd, "same", row_count)
             conn.commit()
             cursor.close()
             return "same"
@@ -294,7 +296,7 @@ def run_batch(daily_limit: int = 10000, target_ym: str = None):
 
     try:
         for idx, (lawd_cd, ym) in enumerate(sgg_yms):
-            logger.info(f"{idx+1}/{len(sgg_yms)}번 진행중.. ({(idx+1) / len(sgg_yms) * 100:.1f}%)", extra={"lawd_cd": lawd_cd, "deal_ymd": ym})
+            logger.info(f"===={idx+1}/{len(sgg_yms)}번 진행중.. ({(idx+1) / len(sgg_yms) * 100:.1f}%)====", extra={"lawd_cd": lawd_cd, "deal_ymd": ym})
             try:
                 result = collect_one(conn, lawd_cd, ym, daily_limit)
             except RateLimitExceeded as e:
@@ -303,7 +305,7 @@ def run_batch(daily_limit: int = 10000, target_ym: str = None):
                 return stats
 
             stats["processed"] += 1
-            logger.info("result: %s (%s processed)", result, str(stats["processed"]))
+            logger.info("[RESULT] %s (%s건 진행)", result, str(stats["processed"]))
 
             if result == "skip":
                 stats["skip"] += 1
