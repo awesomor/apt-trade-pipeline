@@ -18,6 +18,3 @@ __pycache__/
 
 # 로그
 logs/
-
-# google credentials
-google_credentials/
